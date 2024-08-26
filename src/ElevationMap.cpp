@@ -60,8 +60,12 @@ ElevationMap::ElevationMap(std::shared_ptr<rclcpp::Node> nodeHandle)
   if (!underlyingMapTopic_.empty()) {
     underlyingMapSubscriber_ = nodeHandle_->create_subscription<grid_map_msgs::msg::GridMap>(underlyingMapTopic_, 1, std::bind(&ElevationMap::underlyingMapCallback, this, std::placeholders::_1));
   }
-  // TODO(max): if (enableVisibilityCleanup_) when parameter cleanup is ready.
-  visibilityCleanupMapPublisher_ = nodeHandle_->create_publisher<grid_map_msgs::msg::GridMap>("visibility_cleanup_map", 1);
+  
+  nodeHandle_->declare_parameter("enable_visibility_cleanup", enableVisibilityCleanup_);
+  enableVisibilityCleanup_ = nodeHandle_->get_parameter("enable_visibility_cleanup").as_bool();
+  if (enableVisibilityCleanup_) {
+    visibilityCleanupMapPublisher_ = nodeHandle_->create_publisher<grid_map_msgs::msg::GridMap>("visibility_cleanup_map", 1);
+  }
 
   initialTime_ = nodeHandle_->get_clock()->now();
 }
@@ -563,7 +567,7 @@ bool ElevationMap::postprocessAndPublishRawElevationMap() {
 }
 
 bool ElevationMap::publishFusedElevationMap() {
-  if (!hasFusedMapSubscribers()) {
+  if (!hasFusedMapSubscribers() && !postprocessorPool_.pipelineHasSubscribers()) {
     return false;
   }
   boost::recursive_mutex::scoped_lock scopedLock(fusedMapMutex_);
@@ -572,7 +576,10 @@ bool ElevationMap::publishFusedElevationMap() {
   fusedMapCopy.add("uncertainty_range", fusedMapCopy.get("upper_bound") - fusedMapCopy.get("lower_bound"));
   std::unique_ptr<grid_map_msgs::msg::GridMap> message;
   message = grid_map::GridMapRosConverter::toMessage(fusedMapCopy);
-  elevationMapFusedPublisher_->publish(std::move(message));
+  if (elevationMapFusedPublisher_->get_subscription_count() >= 1) {
+    elevationMapFusedPublisher_->publish(std::move(message));
+  }
+  postprocessorPool_.runTask(fusedMapCopy);
   RCLCPP_DEBUG(nodeHandle_->get_logger(), "Elevation map (fused) has been published.");
   return true;
 }
@@ -662,7 +669,8 @@ float ElevationMap::cumulativeDistributionFunction(float x, float mean, float st
 }
 
 bool ElevationMap::hasFusedMapSubscribers() const {
-  return elevationMapFusedPublisher_->get_subscription_count() >= 1;
+  return elevationMapFusedPublisher_->get_subscription_count() >= 1 || 
+    postprocessorPool_.pipelineHasSubscribers();
 }
 
 //sets frame id for both maps.

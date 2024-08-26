@@ -272,7 +272,7 @@ bool ElevationMapping::readParameters() {
   nodeHandle_->declare_parameter("min_horizontal_variance", pow(resolution / 2.0, 2));  // two-sigma
   nodeHandle_->declare_parameter("max_horizontal_variance", 0.5);
   nodeHandle_->declare_parameter("underlying_map_topic", std::string());
-  nodeHandle_->declare_parameter("enable_visibility_cleanup", true);
+  // nodeHandle_->declare_parameter("enable_visibility_cleanup", true);
   nodeHandle_->declare_parameter("enable_continuous_cleanup", false);
   nodeHandle_->declare_parameter("scanning_duration", 1.0);
   nodeHandle_->declare_parameter("masked_replace_service_mask_layer_name", std::string("mask"));
@@ -284,7 +284,7 @@ bool ElevationMapping::readParameters() {
   nodeHandle_->get_parameter("min_horizontal_variance", map_.minHorizontalVariance_);  // two-sigma
   nodeHandle_->get_parameter("max_horizontal_variance", map_.maxHorizontalVariance_);
   nodeHandle_->get_parameter("underlying_map_topic", map_.underlyingMapTopic_);
-  nodeHandle_->get_parameter("enable_visibility_cleanup", map_.enableVisibilityCleanup_);
+  // nodeHandle_->get_parameter("enable_visibility_cleanup", map_.enableVisibilityCleanup_);
   nodeHandle_->get_parameter("enable_continuous_cleanup", map_.enableContinuousCleanup_);
   nodeHandle_->get_parameter("scanning_duration", map_.scanningDuration_);
   nodeHandle_->get_parameter("masked_replace_service_mask_layer_name", maskedReplaceServiceMaskLayerName_);
